@@ -1,0 +1,8 @@
+{
+    "N": 200,
+    "burn": 20,
+    "epsilon": 0.025,
+    "N_lf": 20,
+    "hnn_threshold": 10.0,
+    "lf_threshold": 1000.0
+}

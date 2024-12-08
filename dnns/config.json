@@ -1,0 +1,22 @@
+{
+    "input_dim": 4,
+    "num_samples": 10,
+    "len_sample": 50,
+    "dist_name": "nD_Funnel",
+    "save_dir": "/Users/yanchuanmiao/Downloads/Some Useful Paper/code_test/dnns",
+    "load_dir": "/Users/yanchuanmiao/Downloads/Some Useful Paper/code_test/dnns",
+    "should_load": false,
+    "load_file_name": "nD_Funnel",
+    "total_steps": 5000,
+    "hidden_dim": 100,
+    "num_layers": 3,
+    "learn_rate": 0.0005,
+    "batch_size": 1000,
+    "nonlinearity": "tanh",
+    "test_fraction": 0.0,
+    "step_size": 0.025,
+    "print_every": 200,
+    "verbose": false,
+    "field_type": "solenoidal",
+    "seed": 0
+}
