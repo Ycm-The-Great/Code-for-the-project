@@ -1,0 +1,28 @@
+{
+    "model": "glmm",
+    "num_samples": 200,
+    "test_split": 0.0,
+    "should_load": true,
+    "save_path": "glmm.pkl",
+    "load_path": "glmm.pkl",
+    "t_span": [
+        0,
+        0.5
+    ],
+    "timescale": 10,
+    "sigma_x": 0.1,
+    "mu_theta": 0.0,
+    "sigma_theta": 10.0,
+    "sigma_y": 1.0,
+    "mu": 1.0,
+    "sigma": 1.0,
+    "lambda_": 0.1,
+    "p": 8,
+    "mu1": 0.0,
+    "mu2": 3.0,
+    "lambda1": 10.0,
+    "lambda2": 3.0,
+    "w1": 0.5,
+    "n_i": 6,
+    "hidden_dim": 128
+}
