@@ -7,4 +7,4 @@ Please refer to this document for a comprehensive explanation of the code functi
 
 # I have a trained model. However I could not upload in the github website since it is too large. So is the trained data.
 
-# Please assign "should_load = True" when replicating the results!!!
+# Please assign "should_load = False" when replicating the results!!!
