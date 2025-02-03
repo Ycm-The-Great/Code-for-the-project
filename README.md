@@ -1,4 +1,4 @@
-The details of the code implementation can be found in **Section 7** of the following document:  
+The details of the code implementation can be found in the following document:  
 [Submitted Report_Part One_by YCM.pdf](https://github.com/Ycm-The-Great/Code-for-the-project/blob/main/Submitted%20Report_Part%20One_by%20YCM.pdf)
 
 [Submitted Report_Full_Part_by YCM.pdf](https://github.com/Ycm-The-Great/Code-for-the-project/blob/main/Submitted%20Report_Full_Part_by%20YCM.pdf)
