@@ -44,7 +44,59 @@ def leapfrog(dydt, tspan, y0, n, dim):
                     aold[(j + int(dim / 2))] + anew[(j + int(dim / 2))]
                 )
     return y
+def leapfrog_tf(dydt, tspan, y0, n, dim):
+    """
+    Implements the leapfrog integrator for solving ODEs in TensorFlow.
+    """
+    t0, tstop = tspan
+    dt = (tstop - t0) / tf.cast(n, tf.float32)
 
+    # 初始化时间和状态变量
+    t = tf.TensorArray(dtype=tf.float32, size=n + 1, dynamic_size=False,clear_after_read=False)
+    y = tf.TensorArray(dtype=tf.float32, size=n + 1, dynamic_size=False,clear_after_read=False)
+
+    # 初始条件
+    t = t.write(0, t0)
+    y = y.write(0, y0)
+
+    # 计算初始加速度
+    anew = dydt(t.read(0), y.read(0))
+
+    # 迭代 Leapfrog 方法
+    def loop_body(i, t, y, anew):
+        t_next = t.read(i - 1) + dt
+        aold = anew
+        y_prev = y.read(i - 1)
+
+        # 计算位置更新
+        y_next = tf.identity(y_prev)
+        for j in range(0, dim // 2):
+            # print(j,y_next)
+            y_next = tf.tensor_scatter_nd_update(
+                y_next, [[j]], [y_prev[j] + dt * (y_prev[j + dim // 2] + 0.5 * dt * aold[j + dim // 2])]
+            )
+
+        anew = dydt(t_next, y_next)
+
+        # 计算速度更新
+        for j in range(0, dim // 2):
+            y_next = tf.tensor_scatter_nd_update(
+                y_next, [[j + dim // 2]], [y_prev[j + dim // 2] + 0.5 * dt * (aold[j + dim // 2] + anew[j + dim // 2])]
+            )
+
+        t = t.write(i, t_next)
+        y = y.write(i, y_next)
+
+        return i + 1, t, y, anew
+
+    # 运行 Leapfrog 迭代
+    _, t, y, _ = tf.while_loop(
+        lambda i, t, y, anew: i < n + 1,
+        loop_body,
+        [1, t, y, anew]
+    )
+
+    return y.stack()  # 以 Tensor 形式返回所有状态
 
 def lfrog(fun, y0, t, dt, *args, **kwargs):
     """
