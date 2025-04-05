@@ -43,6 +43,8 @@ def get_args():
     parser.add_argument('--verbose', dest='verbose', action='store_true', help='verbose?')
     parser.add_argument('--field_type', default='solenoidal', type=str, help='type of vector field to learn')
     parser.add_argument('--seed', default=0, type=int, help='random seed')
+    parser.add_argument('--seed_tf', nargs=2, type=int, default=[42, 0],
+                    help='Seed for TensorFlow, expects two integers')
     parser.set_defaults(feature=True)
     # 首先解析命令行参数
     args = parser.parse_args()
