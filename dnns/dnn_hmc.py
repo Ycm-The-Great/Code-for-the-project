@@ -89,87 +89,7 @@ def integrate_model_tf(model, t_span, y0, n, args, **kwargs):
 
     # 使用 leapfrog 积分方法
     return leapfrog_tf(fun, t_span, y0, n, args.input_dim)
-    # # 对每条链进行采样
-    # for ss in np.arange(0, chains, 1):
-    #     x_req = np.zeros((N, int(args.input_dim / 2)))  # 存储接受的样本
-    #     x_req[0, :] = y0[0:int(args.input_dim / 2)]
-    #     accept = np.zeros(N)  # 存储每个样本的接受状态
-    
-    #     # 初始化 y0 的前半部分为 0，后半部分从正态分布中采样
-    #     for ii in np.arange(0, int(args.input_dim / 2), 1):
-    #         y0[ii] = 0.0
-    #     for ii in np.arange(int(args.input_dim / 2), int(args.input_dim), 1):
-    #         y0[ii] = norm(loc=0, scale=1).rvs()
-        
-    #     # 用于存储哈密顿轨迹的数组
-    #     HNN_sto = np.zeros((args.input_dim, steps, N))
-        
-    #     # 进行 N 次采样
-    #     for ii in tqdm(np.arange(0, N, 1)):
-    #         # 使用 leapfrog 方法进行哈密顿动力学积分
-    #         hnn_ivp = integrate_model(hnn_model, t_span, y0, steps - 1,args, **kwargs)
-    #         for sss in range(0, args.input_dim):
-    #             HNN_sto[sss, :, ii] = hnn_ivp[sss, :]
-            
-    #         # 计算新的哈密顿量
-    #         yhamil = np.zeros(args.input_dim)
-    #         for jj in np.arange(0, args.input_dim, 1):
-    #             yhamil[jj] = hnn_ivp[jj, steps - 1]
-            
-    #         H_star = functions(yhamil)  # 新的哈密顿量
-    #         H_prev = functions(y0)  # 之前的哈密顿量
-            
-    #         # Metropolis-Hastings 接受率
-    #         alpha = np.minimum(1, np.exp(H_prev - H_star))
-            
-    #         # 如果接受了新的样本，更新 y0
-    #         if alpha > uniform().rvs():
-    #             y0[0:int(args.input_dim / 2)] = hnn_ivp[0:int(args.input_dim / 2), steps - 1]
-    #             x_req[ii, :] = hnn_ivp[0:int(args.input_dim / 2), steps - 1]
-    #             accept[ii] = 1
-    #         else:
-    #             x_req[ii, :] = y0[0:int(args.input_dim / 2)]
-            
-    #         # 每次更新后，重新采样动量部分
-    #         for jj in np.arange(int(args.input_dim / 2), args.input_dim, 1):
-    #             y0[jj] = norm(loc=0, scale=1).rvs()
-            
-    #        # print(f"Sample: {ii} Chain: {ss}")
-        
-    #     # 存储当前链的接受率和采样结果
-    #     hnn_accept[ss, :] = accept
-    #     hnn_fin[ss, :, :] = x_req
-    # total_gradient_evaluations = steps * N
-    # 计算有效样本大小 (ESS)
-    # ess_hnn = np.zeros((chains, int(args.input_dim / 2)))
-    # for ss in np.arange(0, chains, 1):
-    #     # 转换为 TensorFlow 张量
-    #     hnn_tf = tf.convert_to_tensor(hnn_fin[ss, burn:N, :], dtype=tf.float32)
-    #     # 使用 TensorFlow Probability 计算 ESS
-    #     ess_hnn[ss, :] = np.array(tfp.mcmc.effective_sample_size(hnn_tf))
-   #  total_gradient_evaluations = steps * N
-
-   #  avg_ess = np.sum(ess_hnn)/total_gradient_evaluations
-   #  print("Effective Sample Size (ESS):", ess_hnn)
-   #  print("total_gradient_evaluations:", total_gradient_evaluations)
-   #  print("Avg ESS per gradient", avg_ess)
-   #  result = {
-   #     "samples": hnn_fin,
-   #     "effective_sample_sizes": ess_hnn,
-   #     "total_gradient_evaluations": total_gradient_evaluations,
-   #     "Avg ESS per gradient": avg_ess
-   # }
-   #  print(result)
-   #  # 创建保存路径
-   #  save_dir = "results"
-   #  os.makedirs(save_dir, exist_ok=True)  # 如果目录不存在，就创建它
-   #  filename = os.path.join(save_dir, f"dnn_hmc_{args.dist_name}_{args.input_dim}.pkl")
-   #  # 保存为 Pickle 文件
-   #  with open(filename, "wb") as file:
-   #      pickle.dump(result, file)
-    
-   #  print(f"Results saved to {filename}")
-   #  return result
+   
    
 
 
@@ -244,23 +164,7 @@ class HNN_HMC_Kernel(tfp.mcmc.TransitionKernel):
         
         accept = alpha > rand_val
         
-        # accept = tf.constant(accept, dtype=tf.bool)  # 转为标量布尔tensor
 
-        # print(f"accept.shape: {accept.shape}")  
-        # print(f"yhamil.shape: {yhamil.shape}")  
-        # print(f"q.shape: {q.shape}") 
-        # print(f"p.shape: {p.shape}") 
-        # print(tf.shape(hnn_ivp))
-        # accept = tf.reshape(accept, [1, 1])  # ✅ 变成 (1, 1)
-        # yhamil_selected = tf.reshape(yhamil[:input_dim // 2], (1, 2))  # ✅ 变成 (1, 2)
-        # next_q = tf.where(accept, yhamil_selected, q)  # ✅ 确保形状一致
-
-        # 更新 q
-        # next_q = tf.where(accept, tf.convert_to_tensor(yhamil[:input_dim // 2], dtype=tf.float32), q)
-
-        # # 重新采样动量部分 p
-        # next_p = tf.random.normal(shape=[input_dim // 2], mean=0.0, stddev=1.0, dtype=tf.float32)
-        # next_p = tf.reshape(next_p, [1,-1])
         grad_evals_this_step = steps 
         total_grad_evals = previous_kernel_results.grad_evals + grad_evals_this_step
         accept_transposed = tf.transpose(accept)
@@ -270,11 +174,7 @@ class HNN_HMC_Kernel(tfp.mcmc.TransitionKernel):
         next_p = tf.random.normal(shape=[chains,input_dim // 2], mean=0.0, stddev=1.0, dtype=tf.float32)
         log_accept_ratio = tf.squeeze(log_accept_ratio, axis=0)  # 明确去掉第 0 维
         accept = tf.squeeze(accept, axis=0)  # 明确去掉第 0 维
-        # print(f"next_q.shape: {next_q.shape}") 
-        # print(f"next_p.shape: {next_p.shape}") 
-        # accept = tf.reshape(accept, [1,-1])
-        # print(f"is_accepted_tensor.shape: {tf.shape(accept)}")
-        # print(f"is_accepted_tensor: {accept}")
+        
         return [next_q, next_p], HNNKernelResults(
             accept=accept,
             log_accept_ratio=log_accept_ratio,
@@ -384,120 +284,7 @@ def dnn_sampling(args, control_group):
     print(f"Results saved to {filename}")
     return result
 
-# def dnn_sampling(args, control_group):
-#     """
-#     使用 TFP 进行 HMC 采样的函数。
-    
-#     参数:
-#         args: 包含模型和输入维度的参数。
-#         control_group: 包含采样控制参数的对象。
-        
-#     返回:
-#         result: 包含采样结果、ESS、梯度评估次数的字典。
-#     """
-#     chains = control_group.chains  # 采样链数
-#     N = control_group.N  # 每条链的采样数
-#     burn = control_group.burn  # burn-in 样本数
-#     step_size = control_group.epsilon  # HMC 时间步长
-#     num_leapfrog_steps = control_group.L  # 哈密顿轨迹步数
 
-#     # 时间积分设置
-#     steps = num_leapfrog_steps * int(1 / step_size)
-#     t_span = [0, num_leapfrog_steps]
-#     kwargs = {'t_eval': np.linspace(t_span[0], t_span[1], steps), 'rtol': 1e-10}
-
-#     input_dim = args.input_dim
-#     half_dim = int(input_dim / 2)
-    
-#     # 初始化存储
-#     hnn_fin = np.zeros((chains, N, half_dim))
-    
-#     # 获取 HNN 模型（如果需要）
-#     hnn_model = get_model(args, baseline=True)
-
-#     # 目标分布的负对数概率（HMC 需要的是 log_prob）
-#     # def target_log_prob_fn(y0):
-#     #     return tf.reduce_sum(-functions(y0))  # 负哈密顿量作为概率分布的 log_prob
-#     def target_log_prob_fn(y0):
-#         """
-#         计算目标分布的对数概率，结合 HNN 计算哈密顿量。
-#         """
-#         # y0 = tf.reshape(y0, [-1])
-#         # # 用 HNN 计算哈密顿轨迹
-#         # hnn_ivp = integrate_model_tf(hnn_model, t_span, y0, steps - 1, args, **kwargs)
-    
-#         # # 计算终点的哈密顿量
-#         # yhamil = hnn_ivp[:, -1]  # 取最后一个时间步的状态
-        
-#         log_prob = -hnn_model(y0)  # 计算哈密顿量并取负数
-
-#         return tf.reduce_sum(log_prob)  # 确保返回标量
-#     # 运行多个链的 HMC 采样
-#     for ss in range(chains):
-#         # 初始化状态
-#         y0 = np.zeros(input_dim)
-#         y0[half_dim:] = np.random.normal(0, 1, half_dim)  # 后半部分初始化为正态分布
-        
-#         # 转换为 TensorFlow 变量
-#         current_state = tf.Variable(y0, dtype=tf.float32)
-
-#         # 定义 HMC 采样器
-#         kernel = mcmc.HamiltonianMonteCarlo(
-#             target_log_prob_fn=target_log_prob_fn,
-#             step_size=step_size,
-#             num_leapfrog_steps=num_leapfrog_steps
-#         )
-
-#         # 运行采样
-#         @tf.function
-#         def run_chain():
-#             return mcmc.sample_chain(
-#                 num_results=N,
-#                 num_burnin_steps=burn,
-#                 current_state=current_state,
-#                 kernel=kernel,
-#                 trace_fn=lambda _, kernel_results: kernel_results.is_accepted
-#             )
-
-#         samples, is_accepted = run_chain()
-        
-#         # 存储采样结果
-#         hnn_fin[ss, :, :] = samples[:, :half_dim]  # 仅存储前半部分变量
-    
-#     # 计算有效样本大小 (ESS)
-#     ess_hnn = np.zeros((chains, half_dim))
-#     for ss in range(chains):
-#         hnn_tf = tf.convert_to_tensor(hnn_fin[ss, burn:N, :], dtype=tf.float32)
-#         ess_hnn[ss, :] = np.array(tfp.mcmc.effective_sample_size(hnn_tf))
-
-#     # 计算梯度评估次数
-#     total_gradient_evaluations = num_leapfrog_steps * N
-#     avg_ess = np.sum(ess_hnn) / total_gradient_evaluations
-
-#     # 结果字典
-#     result = {
-#         "samples": hnn_fin,
-#         "effective_sample_sizes": ess_hnn,
-#         "total_gradient_evaluations": total_gradient_evaluations,
-#         "Avg ESS per gradient": avg_ess
-#     }
-
-#     # 输出结果
-#     print("Effective Sample Size (ESS):", ess_hnn)
-#     print("Total Gradient Evaluations:", total_gradient_evaluations)
-#     print("Avg ESS per Gradient:", avg_ess)
-
-#     # 保存结果
-#     save_dir = "results"
-#     os.makedirs(save_dir, exist_ok=True)
-#     filename = os.path.join(save_dir, f"dnn_hmc_{args.dist_name}_{args.input_dim}.pkl")
-    
-#     with open(filename, "wb") as file:
-#         pickle.dump(result, file)
-    
-#     print(f"Results saved to {filename}")
-    
-#     return result
 
 def load_json_config(json_file):
     """
