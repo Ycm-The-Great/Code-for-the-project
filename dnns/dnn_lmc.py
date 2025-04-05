@@ -214,68 +214,7 @@ def dnn_lmc_sampling(args, control_group):
     
     # 加载 HNN 模型
     hnn_model = get_model(args, baseline=True)
-    
-    # # 初始化状态向量 y0
-    # y0 = np.zeros(args.input_dim)
-    
-    # # 初始化存储采样结果的数组
-    # hnn_fin = np.zeros((chains, N, int(args.input_dim / 2)))
-    # hnn_accept = np.zeros((chains, N))
-    
-    # # 对每条链进行采样
-    # for ss in tqdm(np.arange(0, chains, 1)):
-    #     x_req = np.zeros((N, int(args.input_dim / 2)))  # 存储接受的样本
-    #     x_req[0, :] = y0[0:int(args.input_dim / 2)]
-    #     accept = np.zeros(N)  # 存储每个样本的接受状态
-    
-    #     # 初始化 y0 的前半部分为 0，后半部分从正态分布中采样
-    #     for ii in np.arange(0, int(args.input_dim / 2), 1):
-    #         y0[ii] = 0.0
-    #     for ii in np.arange(int(args.input_dim / 2), int(args.input_dim), 1):
-    #         y0[ii] = norm(loc=0, scale=1).rvs()
-    
-    #     # 用于存储哈密顿轨迹的数组
-    #     HNN_sto = np.zeros((args.input_dim, 1, N))
-    
-    #     # 进行 N 次采样
-    #     for ii in tqdm(np.arange(0, N, 1)):
-    #         # 使用 leapfrog 方法进行哈密顿动力学积分
-    #         hnn_ivp = integrate_model(hnn_model, t_span, y0, steps - 1,args, **kwargs)
-            
-    #         # 存储积分的最后一步
-    #         for sss in range(0, args.input_dim):
-    #             HNN_sto[sss, :, ii] = hnn_ivp[sss, 1]
-    
-    #         # 计算新的哈密顿量
-    #         yhamil = np.zeros(args.input_dim)
-    #         for jj in np.arange(0, args.input_dim, 1):
-    #             yhamil[jj] = hnn_ivp[jj, 1]
-    
-    #         # 计算新的哈密顿量和之前哈密顿量的差值
-    #         H_star = functions(yhamil)  # 新的哈密顿量
-    #         H_prev = functions(y0)  # 之前的哈密顿量
-    
-    #         # Metropolis-Hastings 接受率
-    #         alpha = np.minimum(1, np.exp(H_prev - H_star))
-    
-    #         # 如果接受了新的样本，更新 y0
-    #         if alpha > uniform().rvs():
-    #             y0[0:int(args.input_dim / 2)] = hnn_ivp[0:int(args.input_dim / 2), 1]
-    #             x_req[ii, :] = hnn_ivp[0:int(args.input_dim / 2), 1]
-    #             accept[ii] = 1
-    #         else:
-    #             x_req[ii, :] = y0[0:int(args.input_dim / 2)]
-    
-    #         # 每次更新后，重新采样动量部分
-    #         for jj in np.arange(int(args.input_dim / 2), args.input_dim, 1):
-    #             y0[jj] = norm(loc=0, scale=1).rvs()
-    
-    #         #print(f"Sample: {ii} Chain: {ss}")
-    
-    #     # 存储当前链的接受率和采样结果
-    #     hnn_accept[ss, :] = accept
-    #     hnn_fin[ss, :, :] = x_req
-    
+
     # 初始化 (q, p)
     initial_q = tf.zeros([chains, input_dim // 2], dtype=tf.float32)  # 位置 q
     initial_p = tf.random.normal([chains, input_dim // 2], dtype=tf.float32)  # 动量 p
@@ -304,15 +243,7 @@ def dnn_lmc_sampling(args, control_group):
     # q_samples, p_samples = samples.numpy()
     q_samples = samples[0].numpy()  # 第一个元素是 q 样本
     p_samples = samples[1].numpy()  # 第二个元素是 p 样本
-    # 计算有效样本大小 (ESS)
-    # ess_hnn = np.array([
-    #     tfp.mcmc.effective_sample_size(tf.convert_to_tensor(q_samples[ss, burn:N, :], dtype=tf.float32)).numpy()
-    #     for ss in range(chains)
-    # ])
-    # q_tensor = tf.convert_to_tensor(q_samples[:, burn:N, :], dtype=tf.float32)
-    
-    # 计算 ESS，向量化操作，结果维度：[chains, D]
-    # print(kernel_results)
+   
     ess_hnn_tf = tfp.mcmc.effective_sample_size(q_samples)
     accept_ratio_per_chain = tf.reduce_mean(tf.cast(kernel_results.accept, tf.float32), axis=0)
 
@@ -342,44 +273,7 @@ def dnn_lmc_sampling(args, control_group):
     print(f"Results saved to {filename}")
     return result
     
-   #  # 计算有效样本大小 (ESS)
-   #  ess_hnn = np.zeros((chains, int(args.input_dim / 2)))
-   #  for ss in np.arange(0, chains, 1):
-   #      # 转换为 TensorFlow 张量
-   #      hnn_tf = tf.convert_to_tensor(hnn_fin[ss, burn:N, :], dtype=tf.float32)
-   #      # 使用 TensorFlow Probability 计算 ESS
-   #      ess_hnn[ss, :] = np.array(tfp.mcmc.effective_sample_size(hnn_tf))
-    
-   #  # 输出有效样本大小
-   #  print("Effective Sample Size (ESS):", ess_hnn)
-   #  total_gradient_evaluations = steps * N
-
-   #  avg_ess = np.sum(ess_hnn)/total_gradient_evaluations
-   #  print("Effective Sample Size (ESS):", ess_hnn)
-   #  print("total_gradient_evaluations:", total_gradient_evaluations)
-   #  print("Avg ESS per gradient", avg_ess)
-    
-   #  result = {
-   #     "samples": hnn_fin,
-   #     "effective_sample_sizes": ess_hnn,
-   #     "total_gradient_evaluations": total_gradient_evaluations,
-   #     "Avg ESS per gradient": avg_ess
-   # }
-   #  print(result)
-   #  save_dir = "results"
-   #  os.makedirs(save_dir, exist_ok=True)  # 如果目录不存在，就创建它
-   #  filename = os.path.join(save_dir, f"dnn_lmc_{args.dist_name}_{args.input_dim}.pkl")
-
-   #  # 保存为 Pickle 文件
-   #  with open(filename, "wb") as file:
-   #      pickle.dump(result, file)
-    
-   #  print(f"Results saved to {filename}")
-    # # 输出有效样本大小
-    # result = {
-    #     "samples": hnn_fin,
-    #     "effective_sample_sizes": ess_hnn,
-    # }
+ 
     return result
 
 def load_json_config(json_file):
