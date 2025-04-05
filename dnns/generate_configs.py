@@ -40,7 +40,8 @@ config = {
     "print_every": 200,  # Number of gradient steps between prints
     "verbose": False,  # Verbose?
     "field_type": "solenoidal",  # Type of vector field to learn
-    "seed": 0  # Random seed
+    "seed": 0, # Random seed
+    "seed_tf": [42,41] 
 }
 # 保存为 config.json 文件
 with open("config.json", "w") as f:
