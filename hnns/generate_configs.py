@@ -40,7 +40,8 @@ config = {
     "print_every": 200,
     "verbose": False,  # 默认值是未设置 verbose 时为 False
     "field_type": "solenoidal",
-    "seed": 0
+    "seed": 0,
+    "seed_tf": [42,41] 
 }
 
 # 保存为 config.json 文件
