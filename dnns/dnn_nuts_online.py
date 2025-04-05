@@ -95,52 +95,6 @@ def stop_criterion(thetaminus, thetaplus, rminus, rplus):
 
 
 
-# Recursive function to build the tree in the No-U-Turn Sampler
-# def build_tree(theta, r, logu, v, j, epsilon, joint0, call_lf):
-#     if j == 0:
-#         # Base case: Integrate the system
-#         t_span1 = [0, v * epsilon]
-#         kwargs1 = {'t_eval': np.linspace(t_span1[0], t_span1[1], 1), 'rtol': 1e-10}
-#         y1 = np.concatenate((theta, r), axis=0)
-#         hnn_ivp1 = integrate_model(hnn_model, t_span1, y1, 1, **kwargs1)
-#         thetaprime = hnn_ivp1[:int(args.input_dim / 2),1].reshape(-1)
-#         rprime = hnn_ivp1[int(args.input_dim / 2):,1].reshape(-1)        
-#         joint = functions(hnn_ivp1[:,1])
-#         #call_lf = call_lf or int((np.log(logu) + joint) > 10.0)
-#         call_lf = call_lf or int((np.log(logu) + joint.numpy()) > 10.0)
-#         monitor = np.log(logu) + joint
-#         sprime = int(monitor <= hnn_threshold)
-        
-#         if call_lf:
-#             hnn_ivp1 = leapfrog(dynamics_fn, t_span1, y1, 1, args.input_dim)
-#             thetaprime = hnn_ivp1[:int(args.input_dim / 2)].reshape(-1)
-#             rprime = hnn_ivp1[int(args.input_dim / 2):].reshape(-1)
-#             joint = functions(hnn_ivp1)
-#             sprime = int(monitor <= lf_threshold)
-
-#         nprime = int(logu <= np.exp(-joint))
-#         thetaminus, thetaplus = thetaprime, thetaprime
-#         rminus, rplus = rprime, rprime
-#         alphaprime = min(1.0, np.exp(joint0 - joint))
-#         nalphaprime = 1
-#     else:
-#         # Recursive case: build left and right subtrees
-#         thetaminus, rminus, thetaplus, rplus, thetaprime, rprime, nprime, sprime, alphaprime, nalphaprime, monitor, call_lf = build_tree(theta, r, logu, v, j - 1, epsilon, joint0, call_lf)
-#         if sprime:
-#             if v == -1:
-#                 thetaminus, rminus, _, _, thetaprime2, rprime2, nprime2, sprime2, alphaprime2, nalphaprime2, monitor, call_lf = build_tree(thetaminus, rminus, logu, v, j - 1, epsilon, joint0, call_lf)
-#             else:
-#                 _, _, thetaplus, rplus, thetaprime2, rprime2, nprime2, sprime2, alphaprime2, nalphaprime2, monitor, call_lf = build_tree(thetaplus, rplus, logu, v, j - 1, epsilon, joint0, call_lf)
-
-#             if np.random.uniform() < (float(nprime2) / max(float(nprime + nprime2), 1.0)):
-#                 thetaprime, rprime = thetaprime2, rprime2
-
-#             nprime += nprime2
-#             sprime = sprime and sprime2 and stop_criterion(thetaminus, thetaplus, rminus, rplus)
-#             alphaprime += alphaprime2
-#             nalphaprime += nalphaprime2
-    
-#     return thetaminus, rminus, thetaplus, rplus, thetaprime, rprime, nprime, sprime, alphaprime, nalphaprime, monitor, call_lf
 
 def build_tree(theta, r, logu, v, j, epsilon, joint0, call_lf,args, control_group):
     """The main recursion."""
@@ -260,37 +214,7 @@ def dnn_nuts_sampling(args, control_group):
         joint = functions(yhamil)  # 标量值
         joint = tf.squeeze(joint) 
         return joint
-        # 让 integrate_model_tf 处理多个链
-        # hnn_ivp = tf.map_fn(lambda y: integrate_model_tf(hnn_model, t_span, y, steps - 1, args, **kwargs), y0)
-        # print(hnn_ivp.shape)
-        # # 取最终的状态
-        # yhamil = hnn_ivp[:, -1, :]  # 形状: (num_chains, 2D)
-        
-        # print(f"yhamil shape: {yhamil.shape}")
-    
-        # # 计算联合概率
-        # joint = tf.map_fn(functions, yhamil)
-        # joint = tf.squeeze(joint)  # 确保是 (num_chains,)
-        # joint = tf.ensure_shape(joint, [chains])  # 确保形状正确
-
-
-        # # joint = functions(yhamil)  # 形状: (num_chains,)
-        # print(f"joint shape: {joint.shape}")
-    
-        # return joint    # 形状: (num_chains,)
-        
-        # hnn_ivp = integrate_model_tf(hnn_model, t_span, y0, steps - 1, args, **kwargs)
-        # # print(hnn_ivp)
-        # # 取最终的状态
-        # yhamil = hnn_ivp[-1, :]
        
-        # # print(yhamil)
-        # # Call HNN and leapfrog here
-        # joint = functions(yhamil)
-        # # print(tf.reduce_sum(joint))
-        # return tf.reduce_sum(joint)
-
-    # Create NUTS kernel
     
     
     kernel = tfp.mcmc.NoUTurnSampler(
@@ -298,18 +222,7 @@ def dnn_nuts_sampling(args, control_group):
         step_size=epsilon
     )
 
-    # # Run MCMC chain
-    # samples, _ = tfp.mcmc.sample_chain(
-    #     num_results=N,
-    #     num_burnin_steps=burn,
-    #     current_state=initial_state,
-    #     kernel=kernel,
-    #     trace_fn=lambda _, pkr: pkr,
-    #     seed=seed
-    # )
-    # chains = []
-    # total_leapfrogs = []  # 存储所有链的 leapfrogs_taken 总数
-    # 设置种子（推荐 split 成多条链独立种子）
+ 
 
     seed_tf = tf.constant(args.seed_tf, dtype=tf.int32)
     seed = tfp.random.sanitize_seed(seed_tf)
@@ -324,19 +237,7 @@ def dnn_nuts_sampling(args, control_group):
             trace_fn=lambda _, pkr: pkr,
             seed=seed
         )
-    # for i in tqdm(range(num_chains)):
-    #     with tf.device('/cpu:0'):
-    #         samples, pkr = tfp.mcmc.sample_chain(
-    #             num_results=N,
-    #             num_burnin_steps=burn,
-    #             current_state=(initial_q[i], initial_p[i]),
-    #             kernel=kernel,
-    #             trace_fn=lambda _, pkr: pkr,
-    #             seed=seed
-    #         )
-    #     chains.append(samples)
-    #     total_leapfrogs.append(tf.reduce_sum(pkr.leapfrogs_taken))  # 计算该链的梯度评估次数
-    # samples = tf.stack(chains, axis=0) 
+ 
     total_gradient_evaluations = tf.reduce_sum(pkr.leapfrogs_taken).numpy()
 
     # Post-processing
@@ -365,123 +266,6 @@ def dnn_nuts_sampling(args, control_group):
     return result
 
 
-
-##### Main Hamiltonian sampling loop #####
-# def dnn_nuts_sampling(args, control_group):
-#     N = control_group.N  # Number of samples
-#     burn = control_group.burn  # Number of burn-in samples
-#     epsilon = control_group.epsilon  # Step size
-#     N_lf = control_group.N_lf  # Number of cool-down samples when DNN integration errors are high (see https://arxiv.org/abs/2208.06120)
-#     hnn_threshold = control_group.hnn_threshold  # DNN integration error threshold (see https://arxiv.org/abs/2208.06120)
-#     lf_threshold = control_group.lf_threshold  # Numerical gradient integration error threshold
-#     D = int(args.input_dim / 2)
-#     M = N
-#     Madapt = 0
-#     theta0 = np.ones(D)
-#     samples = np.empty((M + Madapt, D))
-#     samples[0, :] = theta0
-#     y0 = np.zeros(args.input_dim)
-    
-#     # Initializing random samples for y0
-#     for ii in range(int(args.input_dim / 2)):
-#         y0[ii] = norm(loc=0, scale=1).rvs()
-#     for ii in range(int(args.input_dim / 2), args.input_dim):
-#         y0[ii] = norm(loc=0, scale=1).rvs()
-    
-#     HNN_accept = np.ones(M)
-#     traj_len = np.zeros(M)
-#     alpha_req = np.zeros(M)
-#     H_store = np.zeros(M)
-#     monitor_err = np.zeros(M)
-#     call_lf = 0
-#     counter_lf = 0
-#     is_lf = np.zeros(M)
-#     total_gradient_evaluations = 0
-#     # Sampling loop
-#     for m in tqdm(range(1, M + Madapt)):
-#         #print(m)
-#         for ii in range(int(args.input_dim / 2), args.input_dim):
-#             y0[ii] = norm(loc=0, scale=1).rvs()
-        
-#         joint = functions(y0)
-#         logu = np.random.uniform(0, np.exp(-joint))
-#         samples[m, :] = samples[m - 1, :]
-    
-#         # Initialize the tree
-#         thetaminus = samples[m - 1, :]
-#         thetaplus = samples[m - 1, :]
-#         rminus = y0[int(args.input_dim / 2):]
-#         rplus = y0[int(args.input_dim / 2):]
-        
-#         j = 0
-#         n = 1
-#         s = 1
-    
-#         if call_lf:
-#             counter_lf += 1
-#         if counter_lf == N_lf:
-#             call_lf = 0
-#             counter_lf = 0
-    
-#         while s == 1:
-#             v = int(2 * (np.random.uniform() < 0.5) - 1)
-    
-#             if v == -1:
-#                 # print("v == 1 \n")
-#                 thetaminus, rminus, _, _, thetaprime, rprime, nprime, sprime, alpha, nalpha, monitor, call_lf = build_tree(thetaminus, rminus, logu, v, j, epsilon, joint, call_lf, args, control_group)
-#             else:
-#                 # print("else \n")
-#                 _, _, thetaplus, rplus, thetaprime, rprime, nprime, sprime, alpha, nalpha, monitor, call_lf = build_tree(thetaplus, rplus, logu, v, j, epsilon, joint, call_lf, args, control_group)
-            
-#             _tmp = min(1, float(nprime) / float(n))
-#             if (sprime == 1) and (np.random.uniform() < _tmp):
-#                 # print(f"sprime : {sprime}")
-#                 samples[m, :] = thetaprime
-#                 r_sto = rprime
-    
-#             n += nprime
-#             s = sprime and stop_criterion(thetaminus, thetaplus, rminus, rplus)
-#             j += 1
-#             monitor_err[m] = monitor
-#         total_gradient_evaluations += (2 ** j) - 1
-  
-#         is_lf[m] = call_lf
-#         traj_len[m] = j
-#         alpha_req[m] = alpha
-#         y0[:int(args.input_dim / 2)] = samples[m, :]
-#         H_store[m] = functions(np.concatenate((samples[m, :], r_sto)))
-    
-#     ##### Post-processing with TensorFlow Probability #####
-    
-#     hnn_tf = tf.convert_to_tensor(samples[burn:M, :], dtype=tf.float32)
-#     ess_hnn = np.array(tfp.mcmc.effective_sample_size(hnn_tf))
-#     avg_grad = np.sum(ess_hnn)/total_gradient_evaluations
-#     # Plot results (optional)
-#     plt.plot(samples[:, 0], samples[:, 1], 'r+')
-#     plt.show()
-    
-#     avg_grad = np.sum(ess_hnn)/total_gradient_evaluations
-    
-#     result = {
-#         "samples": hnn_tf,
-#         "effective_sample_sizes": ess_hnn,
-#         "total_gradient_evaluations": total_gradient_evaluations,
-#         "Avg ESS per gradient": avg_grad
-#     }
-#     print("Effective Sample Size (ESS):", ess_hnn)
-#     print("total_gradient_evaluations:", total_gradient_evaluations)
-#     print("Avg ESS per gradient", avg_grad)
-#     print(result)
-    
-#     save_dir = "results"
-#     os.makedirs(save_dir, exist_ok=True)  # 如果目录不存在，就创建它
-#     filename = os.path.join(save_dir, f"dnn_nuts_{args.dist_name}_{args.input_dim}.pkl")
-#     # 保存为 Pickle 文件
-#     with open(filename, "wb") as file:
-#         pickle.dump(result, file)
-    
-#     print(f"Results saved to {filename}")
-#     return result
 
 
 
@@ -534,85 +318,3 @@ if __name__ == "__main__":
 
 
 
-# ##### Main Hamiltonian sampling loop #####
-
-# D = int(args.input_dim / 2)
-# M = N
-# Madapt = 0
-# theta0 = np.ones(D)
-# samples = np.empty((M + Madapt, D))
-# samples[0, :] = theta0
-# y0 = np.zeros(args.input_dim)
-
-# # Initializing random samples for y0
-# for ii in range(int(args.input_dim / 2)):
-#     y0[ii] = norm(loc=0, scale=1).rvs()
-# for ii in range(int(args.input_dim / 2), args.input_dim):
-#     y0[ii] = norm(loc=0, scale=1).rvs()
-
-# HNN_accept = np.ones(M)
-# traj_len = np.zeros(M)
-# alpha_req = np.zeros(M)
-# H_store = np.zeros(M)
-# monitor_err = np.zeros(M)
-# call_lf = 0
-# counter_lf = 0
-# is_lf = np.zeros(M)
-
-# # Sampling loop
-# for m in tqdm(range(1, M + Madapt)):
-#     #print(m)
-#     for ii in range(int(args.input_dim / 2), args.input_dim):
-#         y0[ii] = norm(loc=0, scale=1).rvs()
-    
-#     joint = functions(y0)
-#     logu = np.random.uniform(0, np.exp(-joint))
-#     samples[m, :] = samples[m - 1, :]
-
-#     # Initialize the tree
-#     thetaminus = samples[m - 1, :]
-#     thetaplus = samples[m - 1, :]
-#     rminus = y0[int(args.input_dim / 2):]
-#     rplus = y0[int(args.input_dim / 2):]
-    
-#     j = 0
-#     n = 1
-#     s = 1
-
-#     if call_lf:
-#         counter_lf += 1
-#     if counter_lf == N_lf:
-#         call_lf = 0
-#         counter_lf = 0
-
-#     while s == 1:
-#         v = int(2 * (np.random.uniform() < 0.5) - 1)
-
-#         if v == -1:
-#             thetaminus, rminus, _, _, thetaprime, rprime, nprime, sprime, alpha, nalpha, monitor, call_lf = build_tree(thetaminus, rminus, logu, v, j, epsilon, joint, call_lf)
-#         else:
-#             _, _, thetaplus, rplus, thetaprime, rprime, nprime, sprime, alpha, nalpha, monitor, call_lf = build_tree(thetaplus, rplus, logu, v, j, epsilon, joint, call_lf)
-
-#         if sprime == 1 and np.random.uniform() < (float(nprime) / float(n)):
-#             samples[m, :] = thetaprime
-#             r_sto = rprime
-
-#         n += nprime
-#         s = sprime and stop_criterion(thetaminus, thetaplus, rminus, rplus)
-#         j += 1
-#         monitor_err[m] = monitor
-        
-#     is_lf[m] = call_lf
-#     traj_len[m] = j
-#     alpha_req[m] = alpha
-#     y0[:int(args.input_dim / 2)] = samples[m, :]
-#     H_store[m] = functions(np.concatenate((samples[m, :], r_sto)))
-
-# ##### Post-processing with TensorFlow Probability #####
-
-# hnn_tf = tf.convert_to_tensor(samples[burn:M, :], dtype=tf.float32)
-# ess_hnn = np.array(tfp.mcmc.effective_sample_size(hnn_tf))
-
-# # Plot results (optional)
-# plt.plot(samples[:, 0], samples[:, 1], 'r+')
-# plt.show()
