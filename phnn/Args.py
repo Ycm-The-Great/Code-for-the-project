@@ -27,6 +27,8 @@ class Args:
     T: int = 500
     N: int = 10
     y_path: str = 'y_glmm.pkl'
+    seed_tf: list = (42,0)
+
     
     # 轨迹生成参数
     t_span: list = (0, 0.5)          # 时间范围
@@ -62,10 +64,12 @@ class Args:
     print_every: int = 100
     
     chains: int = 1  # 马尔科夫链数量
-    N :   int = 1000  # 每条链的采样数
+    N :   int = 10  
     L : int= 10  # 每条链的哈密顿轨迹长度
     burn: int = 100  # 丢弃的burn-in样本数量
     epsilon : float= 0.025  # 时间积分步长
+    num_samples: int =100 #采样数
+
     
     @property
     def input_theta_dim(self) -> int:
